@@ -48,7 +48,7 @@ public class ClientHandler {
     public interface ClientHandlerNotify {
         void onSelfClosed(ClientHandler handler);
 
-        void onMsgReturn(String msg);
+        void onMsgReturn(String msg, ClientHandler handler);
     }
 
     class ClientReadHandler extends Thread {
@@ -76,8 +76,9 @@ public class ClientHandler {
                         break;
                     }
 
+                    System.out.println(str);
                     // 回调让TCP Server得到消息
-                    clientHandlerNotify.onMsgReturn(str);
+                    clientHandlerNotify.onMsgReturn(str, ClientHandler.this);
 
                 } while (!done);
             } catch (Exception e) {

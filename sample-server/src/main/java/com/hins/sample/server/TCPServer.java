@@ -54,9 +54,14 @@ public class TCPServer implements ClientHandler.ClientHandlerNotify {
     }
 
     @Override
-    public void onMsgReturn(String msg) {
+    public synchronized void onMsgReturn(String msg, ClientHandler selfHandler) {
 
-        broadcast(msg);
+        for (ClientHandler clientHandler : clientHandlerList) {
+
+            if(!clientHandler.equals(selfHandler)){
+                clientHandler.send(msg);
+            }
+        }
 
     }
 
