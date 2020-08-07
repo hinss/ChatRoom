@@ -1,6 +1,22 @@
+#floders
 .idea/
+target/
+logs/
+log/
+log
+store/*
+data/eod/*
 
+#configs
+config/config.xml
+config/application.properties
+#config/*.cfg
+src/main/resources/jdbc.properties
 
-
-
+#files
 *.iml
+.DS_Store
+.classpath
+.project
+.settings/
+/bin/
