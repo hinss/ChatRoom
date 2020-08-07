@@ -13,13 +13,13 @@ public class ClientHandler {
     private final Socket socket;
     private final ClientReadHandler readHandler;
     private final ClientWriteHandler writeHandler;
-    private final CloseNotify closeNotify;
+    private final ClientHandlerNotify clientHandlerNotify;
 
-    public ClientHandler(Socket socket, CloseNotify closeNotify) throws IOException {
+    public ClientHandler(Socket socket, ClientHandlerNotify clientHandlerNotify) throws IOException {
         this.socket = socket;
         this.readHandler = new ClientReadHandler(socket.getInputStream());
         this.writeHandler = new ClientWriteHandler(socket.getOutputStream());
-        this.closeNotify = closeNotify;
+        this.clientHandlerNotify = clientHandlerNotify;
         System.out.println("新客户端连接：" + socket.getInetAddress() +
                 " P:" + socket.getPort());
     }
@@ -42,11 +42,13 @@ public class ClientHandler {
 
     private void exitBySelf() {
         exit();
-        closeNotify.onSelfClosed(this);
+        clientHandlerNotify.onSelfClosed(this);
     }
 
-    public interface CloseNotify {
+    public interface ClientHandlerNotify {
         void onSelfClosed(ClientHandler handler);
+
+        void onMsgReturn(String msg);
     }
 
     class ClientReadHandler extends Thread {
@@ -73,8 +75,10 @@ public class ClientHandler {
                         ClientHandler.this.exitBySelf();
                         break;
                     }
-                    // 打印到屏幕
-                    System.out.println(str);
+
+                    // 回调让TCP Server得到消息
+                    clientHandlerNotify.onMsgReturn(str);
+
                 } while (!done);
             } catch (Exception e) {
                 if (!done) {

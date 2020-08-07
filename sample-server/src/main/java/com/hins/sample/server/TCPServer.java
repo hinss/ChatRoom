@@ -9,7 +9,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TCPServer {
+public class TCPServer implements ClientHandler.ClientHandlerNotify {
     private final int port;
     private ClientListener mListener;
     private List<ClientHandler> clientHandlerList = new ArrayList<>();
@@ -42,10 +42,22 @@ public class TCPServer {
         clientHandlerList.clear();
     }
 
-    public void broadcast(String str) {
+    public synchronized void broadcast(String str) {
         for (ClientHandler clientHandler : clientHandlerList) {
             clientHandler.send(str);
         }
+    }
+
+    @Override
+    public synchronized void onSelfClosed(ClientHandler handler) {
+        clientHandlerList.remove(handler);
+    }
+
+    @Override
+    public void onMsgReturn(String msg) {
+
+        broadcast(msg);
+
     }
 
     private class ClientListener extends Thread {
@@ -73,8 +85,7 @@ public class TCPServer {
                 }
                 try {
                     // 客户端构建异步线程
-                    ClientHandler clientHandler = new ClientHandler(client,
-                            handler -> clientHandlerList.remove(handler));
+                    ClientHandler clientHandler = new ClientHandler(client,TCPServer.this);
                     // 读取数据并打印
                     clientHandler.readToPrint();
                     clientHandlerList.add(clientHandler);
