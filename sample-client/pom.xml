@@ -21,6 +21,9 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <mainClass>com.hins.sample.client.ClientTest</mainClass>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
