@@ -8,14 +8,19 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class TCPServer implements ClientHandler.ClientHandlerNotify {
     private final int port;
     private ClientListener mListener;
     private List<ClientHandler> clientHandlerList = new ArrayList<>();
+    private final ExecutorService forwardExecutorService;
 
     public TCPServer(int port) {
+
         this.port = port;
+        this.forwardExecutorService = Executors.newSingleThreadExecutor();
     }
 
     public boolean start() {
@@ -90,7 +95,7 @@ public class TCPServer implements ClientHandler.ClientHandlerNotify {
                 }
                 try {
                     // 客户端构建异步线程
-                    ClientHandler clientHandler = new ClientHandler(client,TCPServer.this);
+                    ClientHandler clientHandler = new ClientHandler(client,TCPServer.this,forwardExecutorService);
                     // 读取数据并打印
                     clientHandler.readToPrint();
                     clientHandlerList.add(clientHandler);

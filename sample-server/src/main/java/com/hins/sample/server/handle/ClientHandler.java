@@ -6,6 +6,7 @@ import com.hins.libary.clink.utils.CloseUtils;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -15,10 +16,10 @@ public class ClientHandler {
     private final ClientWriteHandler writeHandler;
     private final ClientHandlerNotify clientHandlerNotify;
 
-    public ClientHandler(Socket socket, ClientHandlerNotify clientHandlerNotify) throws IOException {
+    public ClientHandler(Socket socket, ClientHandlerNotify clientHandlerNotify, ExecutorService forwardExecutor) throws IOException {
         this.socket = socket;
         this.readHandler = new ClientReadHandler(socket.getInputStream());
-        this.writeHandler = new ClientWriteHandler(socket.getOutputStream());
+        this.writeHandler = new ClientWriteHandler(socket.getOutputStream(),forwardExecutor);
         this.clientHandlerNotify = clientHandlerNotify;
         System.out.println("新客户端连接：" + socket.getInetAddress() +
                 " P:" + socket.getPort());
@@ -103,9 +104,9 @@ public class ClientHandler {
         private final PrintStream printStream;
         private final ExecutorService executorService;
 
-        ClientWriteHandler(OutputStream outputStream) {
+        ClientWriteHandler(OutputStream outputStream,ExecutorService forwardExecutor) {
             this.printStream = new PrintStream(outputStream);
-            this.executorService = Executors.newSingleThreadExecutor();
+            this.executorService = forwardExecutor;
         }
 
         void exit() {
