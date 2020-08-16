@@ -1,6 +1,8 @@
 package com.hins.sample.server;
 
 
+import com.hins.libary.clink.core.IoContext;
+import com.hins.libary.clink.core.impl.IoSelectorProvider;
 import com.hins.sample.foo.constants.TCPConstants;
 
 import java.io.BufferedReader;
@@ -9,6 +11,11 @@ import java.io.InputStreamReader;
 
 public class Server {
     public static void main(String[] args) throws IOException {
+
+        IoContext.setup()
+                .ioProvider(new IoSelectorProvider())
+                .start();
+
         TCPServer tcpServer = new TCPServer(TCPConstants.PORT_SERVER);
         boolean isSucceed = tcpServer.start();
         if (!isSucceed) {
@@ -27,5 +34,7 @@ public class Server {
 
         UDPProvider.stop();
         tcpServer.stop();
+
+        IoContext.close();
     }
 }

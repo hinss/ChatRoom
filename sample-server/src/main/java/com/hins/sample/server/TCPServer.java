@@ -88,12 +88,17 @@ public class TCPServer implements ClientHandler.ClientHandlerNotify {
     @Override
     public synchronized void onMsgReturn(String msg, ClientHandler selfHandler) {
 
-        for (ClientHandler clientHandler : clientHandlerList) {
+        forwardExecutorService.execute(() -> {
+            synchronized (TCPServer.this){
 
-            if(!clientHandler.equals(selfHandler)){
-                clientHandler.send(msg);
+                for (ClientHandler clientHandler : clientHandlerList) {
+
+                    if(!clientHandler.equals(selfHandler)){
+                        clientHandler.send(msg);
+                    }
+                }
             }
-        }
+        });
 
     }
 
@@ -139,9 +144,7 @@ public class TCPServer implements ClientHandler.ClientHandlerNotify {
                             SocketChannel socketChannel = serverSocketChannel.accept();
                             try {
                                 // 客户端构建异步线程
-                                ClientHandler clientHandler = new ClientHandler(socketChannel,TCPServer.this,forwardExecutorService);
-                                // 读取数据并打印
-                                clientHandler.readToPrint();
+                                ClientHandler clientHandler = new ClientHandler(socketChannel,TCPServer.this);
                                 // 添加同步处理
                                 synchronized (TCPServer.this) {
                                     clientHandlerList.add(clientHandler);
