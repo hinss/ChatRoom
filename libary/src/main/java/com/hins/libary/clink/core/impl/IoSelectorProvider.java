@@ -71,9 +71,9 @@ public class IoSelectorProvider implements IoProvider {
 
                 try {
                     while(!isClosed.get()){
-                        waitSelection(inRegisInput);
-                        if(readSelector.select() == 0){
 
+                        if(readSelector.select() == 0){
+                            waitSelection(inRegisInput);
                             continue;
                         }
 
