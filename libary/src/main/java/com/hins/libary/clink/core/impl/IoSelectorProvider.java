@@ -271,9 +271,9 @@ public class IoSelectorProvider implements IoProvider {
                                  Map<SelectionKey, Runnable> callbackMap,
                                  ExecutorService pool) {
 
-        // 重点 如何取消感兴趣事件
-        // 当注册读事件时,实际上都是在同一个key上进行与运算叠加
-        // 同理 当取消事件时，也可以通过与运算减掉这一部分
+        // 重点 取消感兴趣事件
+        // 1.为什么要取消感兴趣事件？看笔记
+        // 2.当注册读事件时,实际上都是在同一个key上进行与运算叠加了;同理 当取消事件时，也可以通过与运算减掉这一部分
         key.interestOps(key.readyOps() & ~keyOps);
 
         Runnable runnable = null;
