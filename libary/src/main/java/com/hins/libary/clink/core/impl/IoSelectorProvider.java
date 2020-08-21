@@ -81,7 +81,7 @@ public class IoSelectorProvider implements IoProvider {
                         for (SelectionKey selectionKey : selectionKeys) {
 
                             if(selectionKey.isValid()){
-                               //处理每一个读的selectionKey
+                               // 丢给线程池异步处理每一个读的selectionKey
                                handleSelection(selectionKey, SelectionKey.OP_READ, inputCallbackMap, inputHandlePool);
                             }
                         }
@@ -120,7 +120,7 @@ public class IoSelectorProvider implements IoProvider {
                         for (SelectionKey selectionKey : selectionKeys) {
 
                             if(selectionKey.isValid()){
-                                //处理每一个读的selectionKey
+                                //丢给线程池异步处理每一个写的selectionKey
                                 handleSelection(selectionKey, SelectionKey.OP_WRITE, outputCallbackMap, outputHandlePool);
                             }
                         }
