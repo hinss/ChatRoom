@@ -210,6 +210,8 @@ public class IoSelectorProvider implements IoProvider {
             try{
 
                 // 唤醒当前的selector， 让selector不处于select()状态
+                // 這裡喚醒selector的原因是: selector 进入阻塞状态会占有锁，
+                // 会导致无法注册channel。
                 selector.wakeup();
 
                 SelectionKey key = null;
@@ -225,10 +227,11 @@ public class IoSelectorProvider implements IoProvider {
 
                 // 如果没有找到
                 if(key == null){
-                    // 注册 selector 得到key
+                    // 注册 selector 得到key 并且订阅感兴趣事件。
                     key = socketChannel.register(selector, registerOps);
                     // 注册回调
                     map.put(key, runnable);
+                    System.out.println(map.size());
                 }
 
                 return key;
@@ -257,7 +260,7 @@ public class IoSelectorProvider implements IoProvider {
             SelectionKey selectionKey = socketChannel.keyFor(selector);
             if(selectionKey != null){
                 // 取消监听的方法
-                selectionKey.channel();
+                selectionKey.cancel();
                 map.remove(selectionKey);
                 selector.wakeup();
             }
