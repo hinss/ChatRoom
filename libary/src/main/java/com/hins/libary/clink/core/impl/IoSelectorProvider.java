@@ -260,6 +260,7 @@ public class IoSelectorProvider implements IoProvider {
             SelectionKey selectionKey = socketChannel.keyFor(selector);
             if(selectionKey != null){
                 // 取消监听的方法
+                // 这里可以理解成 channel与selector的联系关系取消
                 selectionKey.cancel();
                 map.remove(selectionKey);
                 selector.wakeup();
@@ -274,7 +275,7 @@ public class IoSelectorProvider implements IoProvider {
                                  Map<SelectionKey, Runnable> callbackMap,
                                  ExecutorService pool) {
 
-        // 重点 取消感兴趣事件
+        // 重点 取消感兴趣事件 这里可以理解成只是selectionKey中某个事件不再感兴趣，但是channel与Selector还存在绑定关系。
         // 1.为什么要取消感兴趣事件？看笔记
         // 2.当注册读事件时,实际上都是在同一个key上进行与运算叠加了;同理 当取消事件时，也可以通过与运算减掉这一部分
         key.interestOps(key.readyOps() & ~keyOps);
