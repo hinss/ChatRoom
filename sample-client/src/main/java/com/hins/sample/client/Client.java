@@ -2,12 +2,20 @@ package com.hins.sample.client;
 
 
 
+import com.hins.libary.clink.core.IoContext;
+import com.hins.libary.clink.core.impl.IoSelectorProvider;
 import com.hins.sample.client.bean.ServerInfo;
 
 import java.io.*;
 
 public class Client {
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws IOException {
+
+        IoContext.setup()
+                .ioProvider(new IoSelectorProvider())
+                .start();
+
+
         ServerInfo info = UDPSearcher.searchServer(10000);
         System.out.println("Server:" + info);
 
@@ -29,6 +37,7 @@ public class Client {
             }
         }
 
+        IoContext.close();
     }
 
     private static void write(TCPClient tcpClient) throws IOException {
@@ -39,7 +48,10 @@ public class Client {
         do {
             // 键盘读取一行
             String str = input.readLine();
-            // 发送到服务器
+            // 发送到服务器 一次发送4条测试粘包解决方案
+            tcpClient.send(str);
+            tcpClient.send(str);
+            tcpClient.send(str);
             tcpClient.send(str);
 
             if ("00bye00".equalsIgnoreCase(str)) {
