@@ -83,6 +83,8 @@ public class AsyncReceiveDispather implements ReceiveDispather {
 
             int receiveSize;
             if(packetTemp == null){
+                //这里设置的4个字节正是每一个paket的长度信息，
+                //接收端每次处理一个完成的数据包都会先读取头部信息再去读取真实数据!!
                 receiveSize = 4;
             }else{
                 receiveSize = Math.min(total - position,ioArgs.capacity());
