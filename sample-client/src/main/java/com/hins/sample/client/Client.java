@@ -48,11 +48,10 @@ public class Client {
         do {
             // 键盘读取一行
             String str = input.readLine();
-            // 发送到服务器 一次发送4条测试粘包解决方案
+            // 发送到服务器 一次发送3条测试粘包解决方案
             tcpClient.send(str);
-            tcpClient.send(str);
-            tcpClient.send(str);
-            tcpClient.send(str);
+//            tcpClient.send(str);
+//            tcpClient.send(str);
 
             if ("00bye00".equalsIgnoreCase(str)) {
                 break;

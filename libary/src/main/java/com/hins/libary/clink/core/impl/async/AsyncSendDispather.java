@@ -78,7 +78,7 @@ public class AsyncSendDispather implements SendDispather {
 
         SendPacket sendPacket = packetTemp = takePacket();
         if(sendPacket == null){
-            // 队列为空，取消状态发送
+            // 队列为空，取消状态发送 让下一个包可以继续发送
             isSending.set(false);
             return;
         }
@@ -129,14 +129,14 @@ public class AsyncSendDispather implements SendDispather {
         @Override
         public void onStarted(IoArgs args) {
 
-            int receiveSize;
-            if(packetTemp == null){
-                receiveSize = 4;
-            }else{
-                receiveSize = Math.min(total - position,ioArgs.capacity());
-            }
-            //设置本次接收数据大小
-            args.limit(receiveSize);
+//            int receiveSize;
+//            if(packetTemp == null){
+//                receiveSize = 4;
+//            }else{
+//                receiveSize = Math.min(total - position,ioArgs.capacity());
+//            }
+//            //设置本次接收数据大小
+//            args.limit(receiveSize);
 
         }
 

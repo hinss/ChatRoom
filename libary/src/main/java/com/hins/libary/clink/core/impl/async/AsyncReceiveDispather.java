@@ -81,6 +81,15 @@ public class AsyncReceiveDispather implements ReceiveDispather {
         @Override
         public void onStarted(IoArgs args) {
 
+            int receiveSize;
+            if(packetTemp == null){
+                receiveSize = 4;
+            }else{
+                receiveSize = Math.min(total - position,ioArgs.capacity());
+            }
+            //设置本次接收数据大小
+            args.limit(receiveSize);
+
         }
 
         @Override

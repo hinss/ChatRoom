@@ -231,7 +231,6 @@ public class IoSelectorProvider implements IoProvider {
                     key = socketChannel.register(selector, registerOps);
                     // 注册回调
                     map.put(key, runnable);
-                    System.out.println(map.size());
                 }
 
                 return key;
