@@ -10,6 +10,8 @@ import com.hins.libary.clink.utils.CloseUtils;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.Buffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -17,7 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @created: 2020-08-23 16:28
  * @desc:
  **/
-public class AsyncReceiveDispather implements ReceiveDispather {
+public class AsyncReceiveDispather implements ReceiveDispather, IoArgs.IoArgsEventProcessor {
 
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
@@ -25,14 +27,15 @@ public class AsyncReceiveDispather implements ReceiveDispather {
     private final ReceivePacketCallback callback;
 
     private IoArgs ioArgs = new IoArgs();
-    private ReceivePacket packetTemp;
-    private byte[] buffer;
-    private int total;
-    private int position;
+    private ReceivePacket<?> packetTemp;
+
+    private WritableByteChannel writableByteChannel;
+    private long total;
+    private long position;
 
     public AsyncReceiveDispather(Receiver receiver, ReceivePacketCallback callback) {
         this.receiver = receiver;
-        this.receiver.setReceiveListener(listener);
+        this.receiver.setReceiveListener(this);
         this.callback = callback;
     }
 
@@ -53,11 +56,7 @@ public class AsyncReceiveDispather implements ReceiveDispather {
     public void close() throws IOException {
 
         if(isClosed.compareAndSet(false,true)){
-            ReceivePacket packet = packetTemp;
-            if (packet != null) {
-                packetTemp = null;
-                CloseUtils.close(packet);
-            }
+            completePacket(false);
 
         }
 
@@ -66,7 +65,7 @@ public class AsyncReceiveDispather implements ReceiveDispather {
     private void registerReceive() {
 
         try {
-            receiver.receiveAsync(ioArgs);
+            receiver.postReceiveAsync();
         } catch (IOException e) {
             closeAndNotify();
         }
@@ -76,32 +75,6 @@ public class AsyncReceiveDispather implements ReceiveDispather {
 
         CloseUtils.close(this);
     }
-
-    private IoArgs.IoArgsEventListener listener = new IoArgs.IoArgsEventListener() {
-        @Override
-        public void onStarted(IoArgs args) {
-
-            int receiveSize;
-            if(packetTemp == null){
-                //这里设置的4个字节正是每一个paket的长度信息，
-                //接收端每次处理一个完成的数据包都会先读取头部信息再去读取真实数据!!
-                receiveSize = 4;
-            }else{
-                receiveSize = Math.min(total - position,ioArgs.capacity());
-            }
-            //设置本次接收数据大小
-            args.limit(receiveSize);
-
-        }
-
-        @Override
-        public void onCompleted(IoArgs args) {
-
-            assemblePacket(args);
-            // 继续接收下一条数据
-            registerReceive();
-        }
-    };
 
     /**
      * 解析数据到packet中
@@ -114,32 +87,70 @@ public class AsyncReceiveDispather implements ReceiveDispather {
             //这里读到的length就是设置在IoArgs数据头部中 需要后续读到的整个数据包的大小
             int length = args.readLength();
             packetTemp = new StringReceivePacket(length);
-            buffer = new byte[length];
+            writableByteChannel = Channels.newChannel(packetTemp.open());
+
             total = length;
             position = 0;
         }
 
-        int count  = args.writeTo(buffer, 0);
-        if(count > 0){
-            packetTemp.save(buffer,count);
+        try {
+            int count = args.writeTo(writableByteChannel);
             position += count;
 
             // 检查是否已完成一份Packet接收
             if(position == total){
-                completePacket();
+                completePacket(true);
                 packetTemp = null;
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     /**
      * 完成数据接收操作
      */
-    private void completePacket() {
-
+    private void completePacket(boolean isSucceed) {
         ReceivePacket packet = this.packetTemp;
         CloseUtils.close(packet);
+        packetTemp = null;
 
-        callback.onReceivePacketCompalted(packet);
+        WritableByteChannel writableByteChannel = this.writableByteChannel;
+        CloseUtils.close(writableByteChannel);
+        this.writableByteChannel = null;
+
+        if(packet != null){
+            callback.onReceivePacketCompalted(packet);
+        }
+    }
+
+    @Override
+    public IoArgs provideIoArgs() {
+        IoArgs args = ioArgs;
+
+        int receiveSize;
+        if(packetTemp == null){
+            //这里设置的4个字节正是每一个paket的长度信息，
+            //接收端每次处理一个完成的数据包都会先读取头部信息再去读取真实数据!!
+            receiveSize = 4;
+        }else{
+            receiveSize = (int)Math.min(total - position,ioArgs.capacity());
+        }
+        //设置本次接收数据大小
+        args.limit(receiveSize);
+
+        return args;
+    }
+
+    @Override
+    public void onConsumeFailed(IoArgs args, Exception e) {
+        e.printStackTrace();
+    }
+
+    @Override
+    public void onConsumeCompleted(IoArgs args) {
+
+        assemblePacket(args);
+        registerReceive();
     }
 }

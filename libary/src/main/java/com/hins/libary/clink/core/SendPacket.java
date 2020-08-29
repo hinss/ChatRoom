@@ -1,26 +1,24 @@
 package com.hins.libary.clink.core;
 
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+
 /**
  * @author: hins
  * @created: 2020-08-23 13:27
  * @desc: 发送包的定义
  **/
-public abstract class SendPacket extends Packet{
+public abstract class SendPacket<T extends InputStream> extends Packet<T>{
 
     /**
      * 发送标识
      */
     private boolean isCanceled;
 
-    /**
-     * 发送包内容
-     * @return
-     */
-    public abstract byte[] bytes();
-
     public boolean isCanceled(){
         return isCanceled;
     }
-
 
 }
