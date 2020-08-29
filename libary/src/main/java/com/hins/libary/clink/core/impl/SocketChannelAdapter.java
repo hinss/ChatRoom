@@ -85,7 +85,7 @@ public class SocketChannelAdapter implements Sender, Receiver, Closeable {
             }
 
             IoArgs.IoArgsEventProcessor processor = receiveIoArgsEventProcessor;
-
+            // 当该socketChannel 可读的时候才准备IoArgs
             IoArgs ioArgs = processor.provideIoArgs();
 
             // 具体的读取操作
