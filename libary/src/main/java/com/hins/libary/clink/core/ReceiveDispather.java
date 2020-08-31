@@ -16,6 +16,8 @@ public interface ReceiveDispather extends Closeable {
 
     interface ReceivePacketCallback{
 
+        ReceivePacket<?,?> onArrivedNewPacket(byte type, long length);
+
         void onReceivePacketCompalted(ReceivePacket receivePacket);
     }
 

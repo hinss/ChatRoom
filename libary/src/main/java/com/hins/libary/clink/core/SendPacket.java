@@ -1,8 +1,6 @@
 package com.hins.libary.clink.core;
 
 
-import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 
 /**

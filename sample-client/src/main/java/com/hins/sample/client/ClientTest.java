@@ -1,7 +1,9 @@
 package com.hins.sample.client;
 
 import com.hins.sample.client.bean.ServerInfo;
+import com.hins.sample.foo.Foo;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +19,8 @@ public class ClientTest {
 
     public static void main(String[] args) throws InterruptedException, IOException {
 
+        File cachePath = Foo.getCacheDir("client/test");
+
         ServerInfo info = UDPSearcher.searchServer(10000);
         System.out.println("Server:" + info);
         if(info == null){
@@ -29,7 +33,7 @@ public class ClientTest {
         List<TCPClient> tcpClientList = new ArrayList<>();
         for(int i = 0; i < 1000; i++){
             try {
-                TCPClient tcpClient = TCPClient.getTcpClient(info);
+                TCPClient tcpClient = TCPClient.getTcpClient(info,cachePath);
                 if(tcpClient == null){
                     System.out.println("连接异常");
                     continue;

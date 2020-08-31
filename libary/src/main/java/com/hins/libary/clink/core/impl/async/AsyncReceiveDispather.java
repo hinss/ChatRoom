@@ -1,10 +1,7 @@
 package com.hins.libary.clink.core.impl.async;
 
 import com.hins.libary.clink.box.StringReceivePacket;
-import com.hins.libary.clink.core.IoArgs;
-import com.hins.libary.clink.core.ReceiveDispather;
-import com.hins.libary.clink.core.ReceivePacket;
-import com.hins.libary.clink.core.Receiver;
+import com.hins.libary.clink.core.*;
 import com.hins.libary.clink.utils.CloseUtils;
 
 import java.io.Closeable;
@@ -27,7 +24,7 @@ public class AsyncReceiveDispather implements ReceiveDispather, IoArgs.IoArgsEve
     private final ReceivePacketCallback callback;
 
     private IoArgs ioArgs = new IoArgs();
-    private ReceivePacket<?> packetTemp;
+    private ReceivePacket<?,?> packetTemp;
 
     private WritableByteChannel writableByteChannel;
     private long total;
@@ -86,7 +83,9 @@ public class AsyncReceiveDispather implements ReceiveDispather, IoArgs.IoArgsEve
 
             //这里读到的length就是设置在IoArgs数据头部中 需要后续读到的整个数据包的大小
             int length = args.readLength();
-            packetTemp = new StringReceivePacket(length);
+            byte type = length > 200 ? Packet.TYPE_STREAM_FILE : Packet.TYPE_MEMORY_STRING;
+
+            packetTemp = callback.onArrivedNewPacket(type,length);
             writableByteChannel = Channels.newChannel(packetTemp.open());
 
             total = length;
@@ -112,6 +111,7 @@ public class AsyncReceiveDispather implements ReceiveDispather, IoArgs.IoArgsEve
      */
     private void completePacket(boolean isSucceed) {
         ReceivePacket packet = this.packetTemp;
+
         CloseUtils.close(packet);
         packetTemp = null;
 

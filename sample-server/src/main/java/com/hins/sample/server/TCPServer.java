@@ -3,6 +3,8 @@ package com.hins.sample.server;
 
 import com.hins.libary.clink.utils.CloseUtils;
 import com.hins.sample.server.handle.ClientHandler;
+
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
@@ -13,6 +15,7 @@ import java.util.concurrent.*;
 
 public class TCPServer implements ClientHandler.ClientHandlerNotify {
     private final int port;
+    private final File cachePath;
     private ClientListener mListener;
     private List<ClientHandler> clientHandlerList = new ArrayList<>();
     private final ExecutorService forwardExecutorService;
@@ -20,9 +23,10 @@ public class TCPServer implements ClientHandler.ClientHandlerNotify {
     private ServerSocketChannel serverSocketChannel;
 
 
-    public TCPServer(int port) {
+    public TCPServer(int port, File cachePath) {
 
         this.port = port;
+        this.cachePath = cachePath;
         this.forwardExecutorService = new ThreadPoolExecutor(1, 1,
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<>());
@@ -144,7 +148,8 @@ public class TCPServer implements ClientHandler.ClientHandlerNotify {
                             SocketChannel socketChannel = serverSocketChannel.accept();
                             try {
                                 // 客户端构建异步线程
-                                ClientHandler clientHandler = new ClientHandler(socketChannel,TCPServer.this);
+                                ClientHandler clientHandler = new ClientHandler(socketChannel,
+                                        TCPServer.this, cachePath);
                                 // 添加同步处理
                                 synchronized (TCPServer.this) {
                                     clientHandlerList.add(clientHandler);
