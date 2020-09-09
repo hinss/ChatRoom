@@ -112,7 +112,7 @@ public class AsyncSendDispather implements SendDispather,IoArgs.IoArgsEventProce
     }
 
     /**
-     * 完成Packetf发送
+     * 完成Packet发送
      *
      * @param isSucceed 是否成功
      */

@@ -93,6 +93,7 @@ public class AsyncReceiveDispather implements ReceiveDispather, IoArgs.IoArgsEve
         }
 
         try {
+            // 真正将IoArgs中的数据写入到文件中的操作。
             int count = args.writeTo(writableByteChannel);
             position += count;
 
