@@ -158,7 +158,7 @@ public class AsyncSendDispather implements SendDispather,IoArgs.IoArgsEventProce
             readableByteChannel = Channels.newChannel(packetTemp.open());
             // 首包
             args.limit(4);
-            args.writeLength((int) packetTemp.length());
+            //args.writeLength((int) packetTemp.length());
         }else{
             args.limit((int) Math.min(args.capacity(),total - position));
 

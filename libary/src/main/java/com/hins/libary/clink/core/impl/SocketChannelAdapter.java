@@ -90,7 +90,9 @@ public class SocketChannelAdapter implements Sender, Receiver, Closeable {
 
             // 具体的读取操作
             try {
-                if(ioArgs.readFrom(channel) > 0){
+                if(ioArgs == null){
+                    processor.onConsumeFailed(null, new IOException("ProvierIoArgs is null."));
+                } else if(ioArgs.readFrom(channel) > 0){
                     //读取完成的回调
                     processor.onConsumeCompleted(ioArgs);
                 }else{
@@ -116,7 +118,10 @@ public class SocketChannelAdapter implements Sender, Receiver, Closeable {
 
             // 具体的发送操作
             try {
-                if(args.writeTo(channel) > 0){
+
+                if(args == null){
+                    processor.onConsumeFailed(null, new IOException("SenderIoArgs is null."));
+                } else if(args.writeTo(channel) > 0){
                     // 发送完成的回调
                     processor.onConsumeCompleted(args);
                 }else{

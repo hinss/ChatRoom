@@ -15,12 +15,37 @@ public class IoArgs {
     private ByteBuffer buffer = ByteBuffer.allocate(256);
 
     /**
+     * 从bytes数组进行消费
+     */
+    public int readFrom(byte[] bytes, int offset, int count) {
+
+        int size = Math.min(count, buffer.remaining());
+        if(size <= 0){
+            return 0;
+        }
+        buffer.put(bytes, offset, size);
+        return size;
+    }
+
+    /**
+     * 写入数据到bytes中
+     * @param bytes
+     * @param offset
+     * @return
+     */
+    public int writeTo(byte[] bytes, int offset) {
+
+        int size = Math.min(bytes.length - offset, buffer.remaining());
+        buffer.get(bytes, offset, size);
+        return size;
+    }
+
+
+
+    /**
      * 从bytes中读数据
      */
     public int readFrom(ReadableByteChannel readableByteChannel) throws IOException {
-
-        startWriting();
-
         int bytesProduced = 0;
         while (buffer.hasRemaining()){
 
@@ -33,7 +58,6 @@ public class IoArgs {
             bytesProduced += len;
         }
 
-        finishWriting();
         return bytesProduced;
     }
 
@@ -120,7 +144,7 @@ public class IoArgs {
      * 设置单次写操作的容纳区间
      */
     public void limit(int limit){
-        this.limit = limit;
+        this.limit = Math.min(limit, buffer.capacity());
     }
 
     /**
@@ -130,12 +154,6 @@ public class IoArgs {
         buffer.flip();
     }
 
-    public void writeLength(int total){
-        startWriting();
-        buffer.putInt(total);
-        finishWriting();
-    }
-
     public int readLength(){
 
         return buffer.getInt();
@@ -143,6 +161,18 @@ public class IoArgs {
 
     public int capacity() {
         return buffer.capacity();
+    }
+
+    public boolean remained() {
+
+        return buffer.remaining() > 0;
+    }
+
+    public int fillEmpty(int size) {
+
+        int fillSize = Math.min(size, buffer.remaining());
+        buffer.position(buffer.position() + fillSize);
+        return fillSize;
     }
 
     /**
