@@ -40,6 +40,7 @@ public class AsyncSendDispather implements SendDispather,
             queue.offer(sendPacket);
             if(isSending.compareAndSet(false,true)){
                 if(packetReader.requestTakePacket()){
+                    // 当判断帧队列有数据发送 则直接请求网络发送数据
                     requestSend();
                 }
             }

@@ -84,6 +84,8 @@ public class AsyncPacketReader implements Closeable {
     boolean requestTakePacket() {
 
         synchronized (this) {
+            // 当帧队列的size大于1时
+            // 表示肯定有数据可以发送
             if(nodeSize >= 1){
                 return true;
             }
