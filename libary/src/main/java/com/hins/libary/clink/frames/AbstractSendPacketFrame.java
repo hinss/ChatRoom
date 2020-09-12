@@ -19,6 +19,13 @@ public abstract class AbstractSendPacketFrame extends AbstractSendFrame {
         this.packet = sendPacket;
     }
 
+    /**
+     * 获取当前对应的packet
+     */
+    public synchronized SendPacket getPacket(){
+        return packet;
+    }
+
     @Override
     public synchronized boolean handle(IoArgs ioArgs) throws IOException {
         if(packet == null && !isSending()){

@@ -7,8 +7,6 @@ import com.hins.libary.clink.core.Sender;
 import com.hins.libary.clink.utils.CloseUtils;
 
 import java.io.IOException;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -18,23 +16,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @created: 2020-08-23 15:07
  * @desc:
  **/
-public class AsyncSendDispather implements SendDispather,IoArgs.IoArgsEventProcessor {
+public class AsyncSendDispather implements SendDispather,
+        IoArgs.IoArgsEventProcessor, AsyncPacketReader.PacketProvier {
 
     private final Sender sender;
     private final Queue<SendPacket> queue = new ConcurrentLinkedDeque<SendPacket>();
     private final AtomicBoolean isSending = new AtomicBoolean();
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
+    private final AsyncPacketReader packetReader = new AsyncPacketReader(this);
+    private final Object queueLock = new Object();
 
-    private IoArgs ioArgs = new IoArgs();
-    private SendPacket<?> packetTemp;
-    private ReadableByteChannel readableByteChannel;
-
-    // 当前packet发送的大小与进度
-    private long total;
-    private long position;
-
-    public AsyncSendDispather(Sender sender) {
+    AsyncSendDispather(Sender sender) {
         this.sender = sender;
         sender.setSendListener(this);
     }
@@ -43,27 +36,50 @@ public class AsyncSendDispather implements SendDispather,IoArgs.IoArgsEventProce
     @Override
     public void send(SendPacket sendPacket) {
 
-        queue.offer(sendPacket);
-        if(isSending.compareAndSet(false,true)){
-
-            sendNextPacket();
-
+        synchronized (queueLock) {
+            queue.offer(sendPacket);
+            if(isSending.compareAndSet(false,true)){
+                if(packetReader.requestTakePacket()){
+                    requestSend();
+                }
+            }
         }
-
     }
 
     @Override
     public void cancel(SendPacket sendPacket) {
+        boolean ret;
+        // 取消发送packet 从队列中移除发送包
+        synchronized (queueLock) {
+            ret = queue.remove(sendPacket);
+        }
 
+        if(ret){
+            sendPacket.cancel();
+            return ;
+        }
+
+        // 真实取消
+        packetReader.cancel(sendPacket);
     }
 
     /**
      * 递归拿发送包的方法
      * @return
      */
-    private SendPacket takePacket(){
-        SendPacket sendPacket = queue.poll();
-        if(sendPacket != null && sendPacket.isCanceled()){
+    @Override
+    public SendPacket takePacket(){
+        SendPacket sendPacket;
+        synchronized (queueLock){
+           sendPacket = queue.poll();
+           if(sendPacket == null){
+               // 队列为空, 取消发送状态
+               isSending.set(false);
+               return null;
+           }
+        }
+
+        if(sendPacket.isCanceled()){
 
             // 已取消 不用发送
             return takePacket();
@@ -71,81 +87,23 @@ public class AsyncSendDispather implements SendDispather,IoArgs.IoArgsEventProce
         return sendPacket;
     }
 
-
-    private void sendNextPacket() {
-
-        // 保证每一次发送的包
-        SendPacket temp = packetTemp;
-        if(temp != null){
-            CloseUtils.close(temp);
-        }
-
-        SendPacket sendPacket = packetTemp = takePacket();
-        if(sendPacket == null){
-            // 队列为空，取消状态发送 让下一个包可以继续发送
-            isSending.set(false);
-            return;
-        }
-
-        //设置发送包的总长度和初始发送位置
-        total = sendPacket.length();
-        position = 0;
-
-        sendCurrentPacket();
-
-    }
-
-    private void sendCurrentPacket() {
-
-        if(position >= total){
-            completePacket(position == total);
-            sendNextPacket();
-            return ;
-        }
-
-        try {
-            sender.postSendAsync();
-        } catch (IOException e) {
-            closeAndNotify();
-        }
-
-    }
-
     /**
      * 完成Packet发送
      *
      * @param isSucceed 是否成功
      */
-    private void completePacket(boolean isSucceed){
-
-        SendPacket sendPacket = this.packetTemp;
-        if(sendPacket == null){
-            return ;
-        }
-
-        CloseUtils.close(packetTemp);
-        CloseUtils.close(readableByteChannel);
-
-        packetTemp = null;
-        readableByteChannel = null;
-        total = 0;
-        position = 0;
-
-
-
-    }
-
-    private void closeAndNotify() {
-        CloseUtils.close(this);
+    @Override
+    public void completedPacket(SendPacket sendPacket, boolean isSucceed) {
+        CloseUtils.close(sendPacket);
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
 
         if(isClosed.compareAndSet(false,true)){
             isSending.set(false);
-            //异常关闭导致的完成操作
-            completePacket(false);
+            // reader 关闭
+            packetReader.close();
         }
 
     }
@@ -153,34 +111,38 @@ public class AsyncSendDispather implements SendDispather,IoArgs.IoArgsEventProce
     @Override
     public IoArgs provideIoArgs() {
 
-        IoArgs args = ioArgs;
-        if(readableByteChannel == null){
-            readableByteChannel = Channels.newChannel(packetTemp.open());
-            // 首包
-            args.limit(4);
-            //args.writeLength((int) packetTemp.length());
-        }else{
-            args.limit((int) Math.min(args.capacity(),total - position));
-
-            try {
-                int count = args.readFrom(readableByteChannel);
-                position += count;
-            } catch (IOException e) {
-                e.printStackTrace();
-                return null;
-            }
-        }
-        return args;
+        return packetReader.fillData();
     }
 
     @Override
     public void onConsumeFailed(IoArgs args, Exception e) {
-        e.printStackTrace();
+        if(args != null){
+            e.printStackTrace();
+        }
+        // TODO
     }
 
     @Override
     public void onConsumeCompleted(IoArgs args) {
         // 继续发送当前包
-        sendCurrentPacket();
+        if (packetReader.requestTakePacket()){
+            requestSend();
+        }
+    }
+
+    private void closeAndNotify() {
+        CloseUtils.close(this);
+    }
+
+    /**
+     * 真实的注册请求网络发送
+     */
+    private void requestSend() {
+
+        try {
+            sender.postSendAsync();
+        } catch (IOException e) {
+            closeAndNotify();
+        }
     }
 }
