@@ -2,6 +2,9 @@ package com.hins.libary.clink.core;
 
 import java.io.IOException;
 
+/**
+ * 提供可重复设置IoContxt中的 IoProvider的能力。
+ */
 public class IoContext {
     private static IoContext INSTANCE;
     /**
